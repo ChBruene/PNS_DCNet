@@ -17,6 +17,7 @@ class Cryptographer(asyncore.dispatcher):
         data = self.recv(8192)
         print(data)
 
+
 # if __name__ == '__main__':
 #     c = Cryptographer("127.0.0.1", 1338, "A")
 #     asyncore.loop();
@@ -31,20 +32,23 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv, "ht:o:", ["task=", "oPar="])
     except getopt.GetoptError:
-        print 'test.py -t <task number> -o <optionalPar>'
+        print('test.py -t <task number> -o <optionalPar>')
         sys.exit(2)
     for opt, arg in opts:
-        if opt in ('-h','--help'):
-            print 'test.py -t <task number> -o <optionalPar>'
+        if opt in ('-h', '--help'):
+            print('test.py -t <task number> -o <optionalPar>')
             sys.exit()
         elif opt in ("-t", "--task"):
             taskInput = arg
         elif opt in ("-o", "--oPar"):
             optionalPar = arg
-    print 'task number is: ', taskInput
-    print 'Output file is: ', optionalPar
+    print('task number is: ', taskInput)
+    print('Output file is: ', optionalPar)
 
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-    # c = Cryptographer("127.0.0.1", 1338, "A")
+    c0 = Cryptographer("127.0.0.1", 1337, "A")
+    c1 = Cryptographer("127.0.0.1", 1338, "B")
+    c2 = Cryptographer("127.0.0.1", 1339, "C")
+    asyncore.loop()

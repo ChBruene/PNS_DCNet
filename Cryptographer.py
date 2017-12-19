@@ -14,6 +14,19 @@ class Cryptographer(asyncore.dispatcher):
         self.buffer = str.encode('%s is here\n' % name)
         self.name = name
         self.psk = (0, 0)
+        self.psk_keylen = 0
+
+    def x_or_with_psk(self, message):
+        encoded = [] 
+        for i in range(len(message)):
+            currentByte = message[i] ^ self.psk[0][i % self.psk_keylen]
+            for p in range(1, len(self.psk)):
+                currentByte = currentByte ^ self.psk[p][i % self.psk_keylen]
+
+            encoded.append(currentByte)
+
+        return bytes(encoded)
+
 
     def handle_write(self):
         sent = self.send(self.buffer)
@@ -23,14 +36,25 @@ class Cryptographer(asyncore.dispatcher):
         return (len(self.buffer) > 0)
 
     def handle_close(self):
-        self.close()
+        pass
 
     def handle_read(self):
         data = self.recv(8192)
-        print(data)
+        print('%s received: %s' % (self.name, data))
+
+        print('PSK1: %i' % int.from_bytes(self.psk[0], byteorder='big'))
+        print('PSK2: %i' % int.from_bytes(self.psk[1], byteorder='big'))
+
+        # testing xor
+        encoded1 = self.x_or_with_psk(data)
+        print('%s XOR: %s' % (self.name, encoded1))
+        print('%s XOR: %s' % (self.name, self.x_or_with_psk(encoded1)))
+
 
     def setPSK(self, psk):
-        self.psk = psk
+        keylen = 2
+        self.psk = (psk[0].to_bytes(keylen, byteorder="big"), psk[1].to_bytes(keylen, byteorder="big"))
+        self.psk_keylen = keylen
 
 
 # if __name__ == '__main__':
@@ -62,7 +86,7 @@ def main(argv):
 
 
 def calcPSK(name, name2):
-    return (42 * ord(name) + 73 * ord(name2)) % 1337
+    return (42 * ord(name) + 73 * ord(name2)) % 0xFFFF 
 
 
 if __name__ == "__main__":
@@ -79,6 +103,6 @@ if __name__ == "__main__":
     c1.setPSK((psk01, psk12))
     c2.setPSK((psk02, psk12))
 
-    c0.buffer += str.encode('C0 TESTAPPEND')
+    c0.buffer += str.encode('C0 TESTAPPEND\n')
 
     asyncore.loop()

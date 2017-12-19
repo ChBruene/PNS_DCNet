@@ -31,5 +31,46 @@ class SPoFServer(asyncore.dispatcher):
         c = SPoFHandler(sock)
         cryptographers.append(c)
 
-server = SPoFServer('localhost', 1338)
-asyncore.loop()
+
+
+def main(argv):
+    # parameter check for different tasks
+    # -h, --help
+    # -t, --task <task number>
+    taskInput = ''
+    optionalPar = ''
+    try:
+        opts, args = getopt.getopt(argv, "ht:o:", ["task=", "oPar="])
+    except getopt.GetoptError:
+        print 'test.py -t <task number> -o <optionalPar>'
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt in ('-h','--help'):
+            print 'test.py -t <task number> -o <optionalPar>'
+            sys.exit()
+        elif opt in ("-t", "--task"):
+            taskInput = arg
+        elif opt in ("-o", "--oPar"):
+            optionalPar = arg
+    print 'task number is: ', taskInput
+    print 'Output file is: ', optionalPar
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
+
+    # server = SPoFServer('localhost', 1338)
+    # asyncore.loop()
+
+
+
+
+
+
+
+
+
+
+
+
+    

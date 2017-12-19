@@ -11,9 +11,19 @@ class Cryptographer(asyncore.dispatcher):
         self.create_socket()
         self.connect((host, port))
         print('Cryptographer %s running ' % name)
-        self.send(str.encode('%s is here' % name))
+        self.buffer = str.encode('%s is here\n' % name)
         self.name = name
         self.psk = (0, 0)
+
+    def handle_write(self):
+        sent = self.send(self.buffer)
+        self.buffer = self.buffer[sent:]
+
+    def writable(self):
+        return (len(self.buffer) > 0)
+
+    def handle_close(self):
+        self.close()
 
     def handle_read(self):
         data = self.recv(8192)
@@ -68,5 +78,7 @@ if __name__ == "__main__":
     c0.setPSK((psk01, psk02))
     c1.setPSK((psk01, psk12))
     c2.setPSK((psk02, psk12))
+
+    c0.buffer += str.encode('C0 TESTAPPEND')
 
     asyncore.loop()

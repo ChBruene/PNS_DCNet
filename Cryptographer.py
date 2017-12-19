@@ -48,7 +48,7 @@ def main(argv):
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-    c0 = Cryptographer("127.0.0.1", 1337, "A")
+    c0 = Cryptographer("127.0.0.1", 1338, "A")
     c1 = Cryptographer("127.0.0.1", 1338, "B")
-    c2 = Cryptographer("127.0.0.1", 1339, "C")
-    asyncore.loop()
+    c2 = Cryptographer("127.0.0.1", 1338, "C")
+    #asyncore.loop()

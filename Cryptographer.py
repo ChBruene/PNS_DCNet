@@ -62,13 +62,16 @@ class Cryptographer(asyncore.dispatcher):
                 byte = byte ^ messages[j][i]
             decrypted.append(byte)
 
-        print(bytes(decrypted).decode('utf8'))
+        print(bytes(decrypted))
+        print("As String: %s"  % bytes(decrypted).decode())
 
     def handle_read(self):
         data = self.recv(8192)
         self.allowSending = True
 
         print('%s received: %s bytes' % (self.name, len(data)))
+        print("%s / %s" % (len(self.recv_buffer), self.messageLength*self.participants))
+        print(data)
         for byte in data:
             self.recv_buffer.append(byte)
 
@@ -142,13 +145,15 @@ if __name__ == "__main__":
     print("[TASK1] For convenience all Cryptographers are created in the process.")
     text = input("[TASK1] Please enter message: ")
 
-    c0.setLength(len(text))
-    c1.setLength(len(text))
-    c2.setLength(len(text))
+    l = len(str.encode(text))
+    c0.setLength(l)
+    c1.setLength(l)
+    c2.setLength(l)
 
-    empty = bytes([0] * len(text))
+    empty = bytes([0] * l)
     c0.allowSending = True
     c0.sendEncrypted(str.encode(text))
+    print(str.encode(text))
     c1.sendEncrypted(empty)
     c2.sendEncrypted(empty)
 

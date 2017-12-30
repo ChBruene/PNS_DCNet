@@ -4,23 +4,27 @@ import getopt
 
 
 class Cryptographer(asyncore.dispatcher):
-
     def __init__(self, host, port, name):
         asyncore.dispatcher.__init__(self)
         self.preSharedKey = ''
         self.create_socket()
         self.connect((host, port))
         print('Cryptographer %s running ' % name)
-        self.buffer = str.encode('%s is here\n' % name)
+        self.buffer = []
         self.name = name
         self.psk = (0, 0)
+        self.participants = 3
         self.psk_keylen = 0
+        self.messageLength = 0
+        self.allowSending = False
+        self.recv_buffer = []
+
 
     def x_or_with_psk(self, message):
         encoded = [] 
         for i in range(len(message)):
-            currentByte = message[i] ^ self.psk[0][i % self.psk_keylen]
-            for p in range(1, len(self.psk)):
+            currentByte = message[i]
+            for p in range(0, len(self.psk)):
                 currentByte = currentByte ^ self.psk[p][i % self.psk_keylen]
 
             encoded.append(currentByte)
@@ -33,22 +37,53 @@ class Cryptographer(asyncore.dispatcher):
         self.buffer = self.buffer[sent:]
 
     def writable(self):
-        return (len(self.buffer) > 0)
+        return (len(self.buffer) > 0 and self.allowSending)
 
     def handle_close(self):
         pass
 
+    def setLength(self, length):
+        self.messageLength = length
+
+    def sendEncrypted(self, message):
+        encryped = self.x_or_with_psk(message)
+        for byte in encryped:
+            self.recv_buffer.append(byte)
+
+        self.buffer = encryped
+
+    def decrypt(self, b):
+        # Split messages
+        messages = [b[i:i + self.messageLength] for i in range(0, len(b), self.messageLength)]
+        decrypted = []
+        for i in range(0, self.messageLength):
+            byte = messages[0][i]
+            for j in range(1, self.participants):
+                byte = byte ^ messages[j][i]
+            decrypted.append(byte)
+
+        print(bytes(decrypted).decode('utf8'))
+
     def handle_read(self):
         data = self.recv(8192)
-        print('%s received: %s' % (self.name, data))
+        self.allowSending = True
 
-        print('PSK1: %i' % int.from_bytes(self.psk[0], byteorder='big'))
-        print('PSK2: %i' % int.from_bytes(self.psk[1], byteorder='big'))
+        print('%s received: %s bytes' % (self.name, len(data)))
+        for byte in data:
+            self.recv_buffer.append(byte)
+
+        if len(self.recv_buffer) == self.messageLength*self.participants:
+            print('%s RECEIVED ALL MESSAGES / DECRYPTED:' % self.name)
+            self.decrypt(self.recv_buffer)
+
+
+        # print('PSK1: %i' % int.from_bytes(self.psk[0], byteorder='big'))
+        # print('PSK2: %i' % int.from_bytes(self.psk[1], byteorder='big'))
 
         # testing xor
-        encoded1 = self.x_or_with_psk(data)
-        print('%s XOR: %s' % (self.name, encoded1))
-        print('%s XOR: %s' % (self.name, self.x_or_with_psk(encoded1)))
+        # encoded1 = self.x_or_with_psk(data)
+        # print('%s XOR: %s' % (self.name, encoded1))
+        # print('%s XOR: %s' % (self.name, self.x_or_with_psk(encoded1)))
 
 
     def setPSK(self, psk):
@@ -66,7 +101,7 @@ def main(argv):
     # parameter check for different tasks
     # -h, --help
     # -t, --task <task number>
-    taskInput = ''
+    taskInput = '1'
     optionalPar = ''
     try:
         opts, args = getopt.getopt(argv, "ht:o:", ["task=", "oPar="])
@@ -103,6 +138,19 @@ if __name__ == "__main__":
     c1.setPSK((psk01, psk12))
     c2.setPSK((psk02, psk12))
 
-    c0.buffer += str.encode('C0 TESTAPPEND\n')
+
+    print("[TASK1] For convenience all Cryptographers are created in the process.")
+    text = input("[TASK1] Please enter message: ")
+
+    c0.setLength(len(text))
+    c1.setLength(len(text))
+    c2.setLength(len(text))
+
+    empty = bytes([0] * len(text))
+    c0.allowSending = True
+    c0.sendEncrypted(str.encode(text))
+    c1.sendEncrypted(empty)
+    c2.sendEncrypted(empty)
+
 
     asyncore.loop()

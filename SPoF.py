@@ -55,9 +55,11 @@ def main(argv):
             optionalPar = arg
     print('task number is: ', taskInput)
     print('Output file is: ', optionalPar)
+    return taskInput, optionalPar
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    task, par = main(sys.argv[1:])
     server = SPoFServer('localhost', 1338)
+    # TODO fuer Task4 muss der Spof die Nachrichen an alle n Cryptographen raus schicken.
     asyncore.loop()

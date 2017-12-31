@@ -1,6 +1,7 @@
 import asyncore
 import sys
 import getopt
+import time
 
 
 class Cryptographer(asyncore.dispatcher):
@@ -12,16 +13,15 @@ class Cryptographer(asyncore.dispatcher):
         print('Cryptographer %s running ' % name)
         self.buffer = []
         self.name = name
-        self.psk = (0, 0)
+        self.psk = []
         self.participants = 3
         self.psk_keylen = 0
         self.messageLength = 0
         self.allowSending = False
         self.recv_buffer = []
 
-
     def x_or_with_psk(self, message):
-        encoded = [] 
+        encoded = []
         for i in range(len(message)):
             currentByte = message[i]
             for p in range(0, len(self.psk)):
@@ -30,7 +30,6 @@ class Cryptographer(asyncore.dispatcher):
             encoded.append(currentByte)
 
         return bytes(encoded)
-
 
     def handle_write(self):
         sent = self.send(self.buffer)
@@ -62,23 +61,22 @@ class Cryptographer(asyncore.dispatcher):
                 byte = byte ^ messages[j][i]
             decrypted.append(byte)
 
-        print(bytes(decrypted))
-        print("As String: %s"  % bytes(decrypted).decode())
+        # print(bytes(decrypted))
+        # print("As String: %s" % bytes(decrypted).decode())
 
     def handle_read(self):
         data = self.recv(8192)
         self.allowSending = True
 
-        print('%s received: %s bytes' % (self.name, len(data)))
-        print("%s / %s" % (len(self.recv_buffer), self.messageLength*self.participants))
-        print(data)
+        # print('%s received: %s bytes' % (self.name, len(data)))
+        # print("%s / %s" % (len(self.recv_buffer), self.messageLength * self.participants))
+        # print(data)
         for byte in data:
             self.recv_buffer.append(byte)
 
-        if len(self.recv_buffer) == self.messageLength*self.participants:
+        if len(self.recv_buffer) == self.messageLength * self.participants:
             print('%s RECEIVED ALL MESSAGES / DECRYPTED:' % self.name)
             self.decrypt(self.recv_buffer)
-
 
         # print('PSK1: %i' % int.from_bytes(self.psk[0], byteorder='big'))
         # print('PSK2: %i' % int.from_bytes(self.psk[1], byteorder='big'))
@@ -88,16 +86,10 @@ class Cryptographer(asyncore.dispatcher):
         # print('%s XOR: %s' % (self.name, encoded1))
         # print('%s XOR: %s' % (self.name, self.x_or_with_psk(encoded1)))
 
-
     def setPSK(self, psk):
         keylen = 2
         self.psk = (psk[0].to_bytes(keylen, byteorder="big"), psk[1].to_bytes(keylen, byteorder="big"))
         self.psk_keylen = keylen
-
-
-# if __name__ == '__main__':
-#     c = Cryptographer("127.0.0.1", 1338, "A")
-#     asyncore.loop();
 
 
 def main(argv):
@@ -121,41 +113,106 @@ def main(argv):
             optionalPar = arg
     print('task number is: ', taskInput)
     print('Output file is: ', optionalPar)
+    return taskInput, optionalPar
 
 
 def calcPSK(name, name2):
-    return (42 * ord(name) + 73 * ord(name2)) % 0xFFFF 
+    return (42 * ord(name[0]) * int(name[1]) + 73 * ord(name2[0]) * int(name[1])) % 0xFFFF
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
-    c0 = Cryptographer("127.0.0.1", 1338, "A")
-    c1 = Cryptographer("127.0.0.1", 1338, "B")
-    c2 = Cryptographer("127.0.0.1", 1338, "C")
+    task, par = main(sys.argv[1:])
 
-    # create PSKs
-    psk01 = calcPSK(c0.name, c1.name)
-    psk02 = calcPSK(c0.name, c2.name)
-    psk12 = calcPSK(c1.name, c2.name)
-    c0.setPSK((psk01, psk02))
-    c1.setPSK((psk01, psk12))
-    c2.setPSK((psk02, psk12))
+    if task == '1':
+        c0 = Cryptographer("127.0.0.1", 1338, "A1")
+        c1 = Cryptographer("127.0.0.1", 1338, "B2")
+        c2 = Cryptographer("127.0.0.1", 1338, "C3")
 
+        # create PSKs
+        psk01 = calcPSK(c0.name, c1.name)
+        psk02 = calcPSK(c0.name, c2.name)
+        psk12 = calcPSK(c1.name, c2.name)
+        c0.setPSK([psk01, psk02])
+        c1.setPSK([psk01, psk12])
+        c2.setPSK([psk02, psk12])
 
-    print("[TASK1] For convenience all Cryptographers are created in the process.")
-    text = input("[TASK1] Please enter message: ")
+        print("[TASK1] For convenience all Cryptographers are created in the process.")
+        text = input("[TASK1] Please enter message: ")
 
-    l = len(str.encode(text))
-    c0.setLength(l)
-    c1.setLength(l)
-    c2.setLength(l)
+        l = len(str.encode(text))
+        c0.setLength(l)
+        c1.setLength(l)
+        c2.setLength(l)
 
-    empty = bytes([0] * l)
-    c0.allowSending = True
-    c0.sendEncrypted(str.encode(text))
-    print(str.encode(text))
-    c1.sendEncrypted(empty)
-    c2.sendEncrypted(empty)
+        empty = bytes([0] * l)
+        c0.allowSending = True
+        c0.sendEncrypted(str.encode(text))
+        print(str.encode(text))
+        c1.sendEncrypted(empty)
+        c2.sendEncrypted(empty)
 
+    elif task == '2':
+        c0 = Cryptographer("127.0.0.1", 1338, "A1")
+        c1 = Cryptographer("127.0.0.1", 1338, "B2")
+        c2 = Cryptographer("127.0.0.1", 1338, "C3")
 
+        # create PSKs
+        psk01 = calcPSK(c0.name, c1.name)
+        psk02 = calcPSK(c0.name, c2.name)
+        psk12 = calcPSK(c1.name, c2.name)
+        c0.setPSK([psk01, psk02])
+        c1.setPSK([psk01, psk12])
+        c2.setPSK([psk02, psk12])
+        print("[TASK1] For convenience all Cryptographers are created in the process.")
+
+        while True:
+            # text = input("[TASK1] Please enter message: ")
+            # l = len(str.encode(text))
+            # c0.setLength(l)
+            # c1.setLength(l)
+            # c2.setLength(l)
+
+            empty = bytes([0] * 6)
+
+            c0.sendEncrypted(empty)
+            c1.sendEncrypted(empty)
+            c2.sendEncrypted(empty)
+            print(empty)
+            time.sleep(3)
+
+    elif task == '3':
+        print('Task3')
+
+    elif task == '4':
+        print('Task4')
+        cList = []
+
+        for i in range(int(par)):
+            cList.append(Cryptographer("127.0.0.1", 1338, "C" + str(i)))
+
+        for c in cList:
+            pskList = []
+            for other in cList:
+                if c.name != other.name:
+                    pskList.append(calcPSK(c.name, other.name))
+            c.setPSK(pskList)
+
+        print("[TASK1] For convenience all Cryptographers are created in the process.")
+        text = input("[TASK1] Please enter message: ")
+
+        l = len(str.encode(text))
+        for c in cList:
+            c.setLength(l)
+
+        empty = bytes([0] * l)
+        cList[0].allowSending = True
+        cList[0].sendEncrypted(str.encode(text))
+        print(str.encode(text))
+        for i in range(1, len(cList)):
+            cList[i].sendEncrypted(empty)
+
+    elif task == '5':
+        print('Task5')
+    else:
+        print('task-switch-case-default')
     asyncore.loop()

@@ -5,7 +5,7 @@ import time
 
 
 class Cryptographer(asyncore.dispatcher):
-    def __init__(self, host, port, name):
+    def __init__(self, host, port, name, participants=3):
         asyncore.dispatcher.__init__(self)
         self.preSharedKey = ''
         self.create_socket()
@@ -14,7 +14,7 @@ class Cryptographer(asyncore.dispatcher):
         self.buffer = []
         self.name = name
         self.psk = []
-        self.participants = 3
+        self.participants = participants
         self.psk_keylen = 0
         self.messageLength = 0
         self.allowSending = False
@@ -61,7 +61,7 @@ class Cryptographer(asyncore.dispatcher):
                 byte = byte ^ messages[j][i]
             decrypted.append(byte)
 
-        # print(bytes(decrypted))
+        print(bytes(decrypted))
         # print("As String: %s" % bytes(decrypted).decode())
 
     def handle_read(self):
@@ -188,7 +188,7 @@ if __name__ == "__main__":
         cList = []
 
         for i in range(int(par)):
-            cList.append(Cryptographer("127.0.0.1", 1338, "C" + str(i)))
+            cList.append(Cryptographer("127.0.0.1", 1338, "C" + str(i), participants=int(par)))
 
         for c in cList:
             pskList = []

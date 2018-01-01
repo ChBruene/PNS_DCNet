@@ -2,6 +2,8 @@ import asyncore
 import sys
 import getopt
 import time
+import threading
+import random
 
 
 class Cryptographer(asyncore.dispatcher):
@@ -97,7 +99,7 @@ def main(argv):
     # parameter check for different tasks
     # -h, --help
     # -t, --task <task number>
-    taskInput = '1'
+    taskInput = '3'
     optionalPar = ''
     try:
         opts, args = getopt.getopt(argv, "ht:o:", ["task=", "oPar="])
@@ -164,25 +166,66 @@ if __name__ == "__main__":
         c0.setPSK([psk01, psk02])
         c1.setPSK([psk01, psk12])
         c2.setPSK([psk02, psk12])
-        print("[TASK1] For convenience all Cryptographers are created in the process.")
+        print("[TASK2] For convenience all Cryptographers are created in the process.")
 
-        while True:
-            # text = input("[TASK1] Please enter message: ")
-            # l = len(str.encode(text))
-            # c0.setLength(l)
-            # c1.setLength(l)
-            # c2.setLength(l)
+        currentMessage = input("[TASK2] Please enter message: ")
+        c0.allowSending = True
 
-            empty = bytes([0] * 6)
 
-            c0.sendEncrypted(empty)
+        def threadedSending():
+
+            l = len(str.encode(currentMessage))
+            c0.setLength(l)
+            c1.setLength(l)
+            c2.setLength(l)
+
+            empty = bytes([0] * l)
+            c0.sendEncrypted(str.encode(currentMessage))
+            print(str.encode(currentMessage))
             c1.sendEncrypted(empty)
             c2.sendEncrypted(empty)
-            print(empty)
-            time.sleep(3)
+            threading.Timer(5, threadedSending).start()
+
+
+        threadedSending()
+
+        while True:
+            currentMessage = input("[TASK2] Please enter message: ")
+
 
     elif task == '3':
         print('Task3')
+        c0 = Cryptographer("127.0.0.1", 1338, "A1")
+        c1 = Cryptographer("127.0.0.1", 1338, "B2")
+        c2 = Cryptographer("127.0.0.1", 1338, "C3")
+
+        # create PSKs
+        psk01 = calcPSK(c0.name, c1.name)
+        psk02 = calcPSK(c0.name, c2.name)
+        psk12 = calcPSK(c1.name, c2.name)
+        c0.setPSK([psk01, psk02])
+        c1.setPSK([psk01, psk12])
+        c2.setPSK([psk02, psk12])
+        print("[TASK2] For convenience all Cryptographers are created in the process.\n\n")
+
+        c0.allowSending = True
+        c1.allowSending = True
+        c2.allowSending = True
+
+        l = len(str.encode(c0.name + ' : ' + str(time.time())))
+        c0.setLength(l)
+        c1.setLength(l)
+        c2.setLength(l)
+        empty = bytes([0] * l)
+
+        def threadedSending():
+            print('new round')
+            c0.sendEncrypted(str.encode(c0.name + ' : ' + str(time.time())) if random.randrange(0,100,1) <= 10 else empty)
+            c1.sendEncrypted(str.encode(c0.name + ' : ' + str(time.time())) if random.randrange(0,100,1) <= 10 else empty)
+            c2.sendEncrypted(str.encode(c0.name + ' : ' + str(time.time())) if random.randrange(0,100,1) <= 10 else empty)
+            threading.Timer(5, threadedSending).start()
+
+        threadedSending()
 
     elif task == '4':
         print('Task4')

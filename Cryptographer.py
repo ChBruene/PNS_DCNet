@@ -118,7 +118,7 @@ def main(argv):
 
 
 def calcPSK(name, name2):
-    return (42 * (ord(name[0]) + int(name[1:]) + ord(name2[0]) + int(name[1:]))) % 0xFFFF
+    return (42 * (int(name[1:]) + int(name2[1:]))) % 0xFFFF
 
 
 if __name__ == "__main__":
@@ -219,15 +219,19 @@ if __name__ == "__main__":
             cList.append(Cryptographer("127.0.0.1", 1338, "C" + str(i), participants=int(par)))
 
         for c in range(len(cList)):
+
             pskList = []
             prevName = ''
             nextName = ''
 
             prevName = cList[c-1].name
-            if c == len(cList):
-                nextName = cList[c+1].name
-            else:
+            if c == len(cList) - 1:
                 nextName = cList[0].name
+            else:
+                nextName = cList[c+1].name
+
+            print(nextName)
+            print(prevName)
 
             pskList.append(calcPSK(cList[c].name, prevName))
             pskList.append(calcPSK(cList[c].name, nextName))

@@ -88,7 +88,8 @@ class Cryptographer(asyncore.dispatcher):
 
     def setPSK(self, psk):
         keylen = 2
-        self.psk = (psk[0].to_bytes(keylen, byteorder="big"), psk[1].to_bytes(keylen, byteorder="big"))
+        self.psk = [psk[0].to_bytes(keylen, byteorder="big"), psk[1].to_bytes(keylen, byteorder="big")]
+        print(self.psk)
         self.psk_keylen = keylen
 
 
@@ -117,7 +118,7 @@ def main(argv):
 
 
 def calcPSK(name, name2):
-    return (42 * (ord(name[0]) * int(name[1:]) + ord(name2[0]) * int(name[1:]))) % 0xFFFF
+    return (42 * (ord(name[0]) + int(name[1:]) + ord(name2[0]) + int(name[1:]))) % 0xFFFF
 
 
 if __name__ == "__main__":
@@ -217,26 +218,23 @@ if __name__ == "__main__":
         for i in range(int(par)):
             cList.append(Cryptographer("127.0.0.1", 1338, "C" + str(i), participants=int(par)))
 
-        for c in cList:
+        for c in range(len(cList)):
             pskList = []
             prevName = ''
             nextName = ''
 
-            if c.name == 'C0':
-                prevName = 'C'+str(int(par)-1)
-                nextName = 'C1'
-            elif c.name == 'C'+str(int(par)-1):
-                prevName = 'C'+str(int(par)-2)
-                nextName = 'C0'
+            prevName = cList[c-1].name
+            if c == len(cList):
+                nextName = cList[c+1].name
             else:
-                prevName = 'C'+str(int(c.name[1:])-1)
-                nextName = 'C'+str(int(c.name[1:])+1)
-            pskList.append(calcPSK(c.name, prevName))
-            pskList.append(calcPSK(c.name, nextName))
-            c.setPSK(pskList)
+                nextName = cList[0].name
+
+            pskList.append(calcPSK(cList[c].name, prevName))
+            pskList.append(calcPSK(cList[c].name, nextName))
+            cList[c].setPSK(pskList)
 
         print("[TASK5] For convenience all Cryptographers are created in the process.")
-        text = '42'
+        text = 'test123'
 
         l = len(str.encode(text))
         for c in cList:
@@ -246,6 +244,7 @@ if __name__ == "__main__":
         cList[0].sendEncrypted(str.encode(text))
         print(str.encode(text))
         for i in range(1, len(cList)):
+            time.sleep(1)
             cList[i].allowSending = True
             cList[i].sendEncrypted(empty)
 

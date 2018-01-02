@@ -55,6 +55,13 @@ class Cryptographer(asyncore.dispatcher):
 
         self.buffer = encryped
 
+    def sendEncryptedBypassBuffer(self, message):
+        encryped = self.x_or_with_psk(message)
+        for byte in encryped:
+            self.recv_buffer.append(byte)
+
+        self.send(encryped)
+
     def decrypt(self, b):
         # Split messages
         messages = [b[i:i + self.messageLength] for i in range(0, len(b), self.messageLength)]
@@ -66,7 +73,7 @@ class Cryptographer(asyncore.dispatcher):
             decrypted.append(byte)
 
         print(bytes(decrypted))
-        # print("As String: %s" % bytes(decrypted).decode())
+        print("As String: %s" % bytes(decrypted).decode())
 
     def handle_read(self):
 
@@ -95,7 +102,7 @@ class Cryptographer(asyncore.dispatcher):
     def setPSK(self, psk):
         keylen = 2
         self.psk = [k.to_bytes(keylen, byteorder="big") for k in psk]
-        print(self.psk)
+        # print(self.psk)
         self.psk_keylen = keylen
 
 
@@ -103,7 +110,7 @@ def main(argv):
     # parameter check for different tasks
     # -h, --help
     # -t, --task <task number>
-    taskInput = '3'
+    taskInput = ''
     optionalPar = ''
     try:
         opts, args = getopt.getopt(argv, "ht:o:", ["task=", "oPar="])
@@ -119,7 +126,7 @@ def main(argv):
         elif opt in ("-o", "--oPar"):
             optionalPar = arg
     print('task number is: ', taskInput)
-    print('Output file is: ', optionalPar)
+    print('Optional parameter: ', optionalPar)
     return taskInput, optionalPar
 
 
@@ -195,10 +202,7 @@ if __name__ == "__main__":
 
         def invokeReceiving():
             #print('iR')
-            c0.handle_read()
-            c1.handle_read()
-            c2.handle_read()
-            threading.Timer(2, invokeReceiving).start()
+            threading.Timer(1, asyncore.loop).start()
 
 
         threadedSending()
@@ -209,6 +213,10 @@ if __name__ == "__main__":
 
 
     elif task == '3':
+        #
+        # The DC-Net can run into conflicts. It can be detected if there is a non zero result or the results is malformed
+        # A possible solution is to resend the message radomly at later time
+        #
         print('Task3')
         c0 = Cryptographer("127.0.0.1", 1338, "A1")
         c1 = Cryptographer("127.0.0.1", 1338, "B2")
@@ -223,9 +231,7 @@ if __name__ == "__main__":
         c2.setPSK([psk02, psk12])
         print("[TASK3] For convenience all Cryptographers are created in the process.\n\n")
 
-        c0.allowSending = True
-        c1.allowSending = True
-        c2.allowSending = True
+        
 
         l = len(str.encode(c0.name + ' : ' + str(time.time())))
         c0.setLength(l)
@@ -235,9 +241,12 @@ if __name__ == "__main__":
 
         def threadedSending():
             print('new round')
-            c0.sendEncrypted(str.encode(c0.name + ' : ' + str(time.time())) if random.randrange(0,100,1) <= 10 else empty)
-            c1.sendEncrypted(str.encode(c0.name + ' : ' + str(time.time())) if random.randrange(0,100,1) <= 10 else empty)
-            c2.sendEncrypted(str.encode(c0.name + ' : ' + str(time.time())) if random.randrange(0,100,1) <= 10 else empty)
+            c0.allowSending = True
+            c1.allowSending = True
+            c2.allowSending = True
+            c0.sendEncryptedBypassBuffer(str.encode(c0.name + ' : ' + str(time.time())) if random.randrange(0,100,1) <= 10 else empty)
+            c1.sendEncryptedBypassBuffer(str.encode(c0.name + ' : ' + str(time.time())) if random.randrange(0,100,1) <= 10 else empty)
+            c2.sendEncryptedBypassBuffer(str.encode(c0.name + ' : ' + str(time.time())) if random.randrange(0,100,1) <= 10 else empty)
             threading.Timer(5, threadedSending).start()
 
         threadedSending()
@@ -311,5 +320,9 @@ if __name__ == "__main__":
             cList[i].sendEncrypted(empty)
 
     else:
-        print('task-switch-case-default')
+        #print('task-switch-case-default')
+        print('Requires running SPoF.py')
+        print('Please restart SPoF.py after every task.')
+        print('Usage python3 Cryptographer.py -t TASK -o OPTIONAL_PARAMETER')
+        
     asyncore.loop()

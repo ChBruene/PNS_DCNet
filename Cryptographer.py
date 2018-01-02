@@ -5,6 +5,8 @@ import time
 import threading
 import random
 
+startTime = 0
+
 
 class Cryptographer(asyncore.dispatcher):
     def __init__(self, host, port, name, participants=3):
@@ -70,23 +72,17 @@ class Cryptographer(asyncore.dispatcher):
         data = self.recv(8192)
         self.allowSending = True
 
-        #print('%s received: %s bytes' % (self.name, len(data)))
-        #print("%s / %s" % (len(self.recv_buffer), self.messageLength * self.participants))
+        #print('data:')
         #print(data)
         for byte in data:
             self.recv_buffer.append(byte)
 
+        print(len(self.recv_buffer), self.messageLength * self.participants)
         if len(self.recv_buffer) == self.messageLength * self.participants:
             print('%s RECEIVED ALL MESSAGES / DECRYPTED:' % self.name)
             self.decrypt(self.recv_buffer)
+            print(time.time() - startTime)
 
-        # print('PSK1: %i' % int.from_bytes(self.psk[0], byteorder='big'))
-        # print('PSK2: %i' % int.from_bytes(self.psk[1], byteorder='big'))
-
-        # testing xor
-        # encoded1 = self.x_or_with_psk(data)
-        # print('%s XOR: %s' % (self.name, encoded1))
-        # print('%s XOR: %s' % (self.name, self.x_or_with_psk(encoded1)))
 
     def setPSK(self, psk):
         keylen = 2
@@ -124,6 +120,7 @@ def calcPSK(name, name2):
 
 
 if __name__ == "__main__":
+    startTime = time.time()
     task, par = main(sys.argv[1:])
 
     if task == '1':
@@ -206,7 +203,7 @@ if __name__ == "__main__":
         c0.setPSK([psk01, psk02])
         c1.setPSK([psk01, psk12])
         c2.setPSK([psk02, psk12])
-        print("[TASK2] For convenience all Cryptographers are created in the process.\n\n")
+        print("[TASK3] For convenience all Cryptographers are created in the process.\n\n")
 
         c0.allowSending = True
         c1.allowSending = True
@@ -242,7 +239,7 @@ if __name__ == "__main__":
             c.setPSK(pskList)
 
         print("[TASK4] For convenience all Cryptographers are created in the process.")
-        text = input("[TASK4] Please enter message: ")
+        text = 'test123'   #input("[TASK4] Please enter message: ")
 
         l = len(str.encode(text))
         for c in cList:

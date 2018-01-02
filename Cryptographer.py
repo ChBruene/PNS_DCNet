@@ -94,7 +94,7 @@ class Cryptographer(asyncore.dispatcher):
 
     def setPSK(self, psk):
         keylen = 2
-        self.psk = [psk[0].to_bytes(keylen, byteorder="big"), psk[1].to_bytes(keylen, byteorder="big")]
+        self.psk = [k.to_bytes(keylen, byteorder="big") for k in psk]
         print(self.psk)
         self.psk_keylen = keylen
 

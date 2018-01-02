@@ -1,3 +1,7 @@
+#
+# PNS BE2 Christian Brüne, Christoph Gärtner, Markus Pöll
+#
+
 import asyncore
 import sys
 import getopt
@@ -214,8 +218,7 @@ if __name__ == "__main__":
 
     elif task == '3':
         #
-        # The DC-Net can run into conflicts. It can be detected if there is a non zero result or the results is malformed
-        # A possible solution is to resend the message radomly at later time
+        # Text solution see task3.md
         #
         print('Task3')
         c0 = Cryptographer("127.0.0.1", 1338, "A1")

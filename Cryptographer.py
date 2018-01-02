@@ -69,19 +69,27 @@ class Cryptographer(asyncore.dispatcher):
         # print("As String: %s" % bytes(decrypted).decode())
 
     def handle_read(self):
-        data = self.recv(8192)
+
+        try:
+            data = self.recv(8192)
+        except :
+            data = []
+
         self.allowSending = True
 
-        #print('data:')
-        #print(data)
-        for byte in data:
-            self.recv_buffer.append(byte)
+        if len(self.recv_buffer) <= self.messageLength * self.participants:
+            for byte in data:
+                self.recv_buffer.append(byte)
+        else:
+            self.recv_buffer = []
 
-        print(len(self.recv_buffer), self.messageLength * self.participants)
+
         if len(self.recv_buffer) == self.messageLength * self.participants:
             print('%s RECEIVED ALL MESSAGES / DECRYPTED:' % self.name)
             self.decrypt(self.recv_buffer)
             print(time.time() - startTime)
+
+
 
 
     def setPSK(self, psk):
@@ -166,7 +174,6 @@ if __name__ == "__main__":
         print("[TASK2] For convenience all Cryptographers are created in the process.")
 
         currentMessage = input("[TASK2] Please enter message: ")
-        c0.allowSending = True
 
 
         def threadedSending():
@@ -177,14 +184,25 @@ if __name__ == "__main__":
             c2.setLength(l)
 
             empty = bytes([0] * l)
+            c0.allowSending = True
             c0.sendEncrypted(str.encode(currentMessage))
-            print(str.encode(currentMessage))
+            #print(str.encode(currentMessage))
+            c1.allowSending = True
             c1.sendEncrypted(empty)
+            c2.allowSending = True
             c2.sendEncrypted(empty)
-            threading.Timer(5, threadedSending).start()
+            threading.Timer(2, threadedSending).start()
+
+        def invokeReceiving():
+            #print('iR')
+            c0.handle_read()
+            c1.handle_read()
+            c2.handle_read()
+            threading.Timer(2, invokeReceiving).start()
 
 
         threadedSending()
+        invokeReceiving()
 
         while True:
             currentMessage = input("[TASK2] Please enter message: ")
